@@ -16,14 +16,8 @@ defineProps({
 
 hrSearch.setBrief(`Stanowisko: AI Marketing Specialist/Creative AI Designer/AI Content Creator
 Lokalizacja: Warszawa, Polska
-Wymagania:
-- Minimum 3 lata doświadczenia w marketingu cyfrowym
-- Znajomość narzędzi AI (ChatGPT, Midjourney, DALL-E)
-- Doświadczenie w tworzeniu materiałów multimedialnych
-- Znajomość języka angielskiego
-- Kreatywność i umiejętność pracy w zespole
-
-Opis stanowiska: Przygotowanie materiałów multimedialnych (filmy, grafiki, materiały POS itp.) zgodnie ze zleconym briefem oraz dobrymi praktykami marketingowymi przy użyciu narzędzi AI.`)
+Opis stanowiska: Przygotowanie materiałów multimedialnych (filmy, grafiki, materiały POS itp.) zgodnie ze zleconym briefem oraz dobrymi praktykami marketingowymi przy użyciu narzędzi AI.
+`)
 
 const searchCandidates = async () => {
   await hrSearch.searchCandidates()

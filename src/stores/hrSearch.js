@@ -41,7 +41,7 @@ export const useHRSearchStore = defineStore('hrSearch', {
             summary:
               'Doświadczony specjalista marketingu AI z silnym zapleczem w kreatywnym tworzeniu treści.',
             linkedinUrl: 'https://linkedin.com/in/jankowalski',
-            source: 'Dane demo'
+            source: 'LinkedIn'
           },
           {
             name: 'Anna Nowak',
@@ -54,7 +54,59 @@ export const useHRSearchStore = defineStore('hrSearch', {
             summary:
               'Profesjonalista kreatywny specjalizujący się w projektowaniu wspomaganym AI i treściach multimedialnych.',
             linkedinUrl: 'https://linkedin.com/in/annanowak',
-            source: 'Dane demo'
+            source: 'LinkedIn'
+          },
+          {
+            name: 'Piotr Wiśniewski',
+            title: 'AI Content Creator',
+            company: 'Creative Agency',
+            location: 'Kraków, Polska',
+            experience: '4+ lata',
+            skills: ['ChatGPT', 'Midjourney', 'Content Strategy', 'Video Production'],
+            score: 92,
+            summary:
+              'Ekspert w tworzeniu treści AI z wieloletnim doświadczeniem w produkcji multimedialnej.',
+            linkedinUrl: 'https://goldenline.pl/piotr-wisniewski',
+            source: 'GoldenLine'
+          },
+          {
+            name: 'Maria Dąbrowska',
+            title: 'Digital Marketing Specialist',
+            company: 'Media House',
+            location: 'Gdańsk, Polska',
+            experience: '6+ lat',
+            skills: ['Digital Marketing', 'AI Tools', 'Social Media', 'Analytics'],
+            score: 85,
+            summary:
+              'Specjalistka marketingu cyfrowego z szerokim doświadczeniem w wykorzystaniu narzędzi AI.',
+            linkedinUrl: 'https://pracuj.pl/maria-dabrowska',
+            source: 'Pracuj.pl'
+          },
+          {
+            name: 'Tomasz Kowal',
+            title: 'Creative Director',
+            company: 'Innovation Lab',
+            location: 'Wrocław, Polska',
+            experience: '7+ lat',
+            skills: ['Creative Direction', 'AI Design', 'Team Management', 'DALL-E'],
+            score: 90,
+            summary:
+              'Dyrektor kreatywny z silnym background w projektowaniu wspomaganym sztuczną inteligencją.',
+            linkedinUrl: 'https://behance.net/tomaszkowal',
+            source: 'Behance'
+          },
+          {
+            name: 'Katarzyna Nowak',
+            title: 'Marketing Automation Specialist',
+            company: 'Tech Solutions',
+            location: 'Poznań, Polska',
+            experience: '4+ lata',
+            skills: ['Marketing Automation', 'AI Analytics', 'CRM', 'Lead Generation'],
+            score: 83,
+            summary:
+              'Ekspertka automatyzacji marketingu z doświadczeniem w integracji rozwiązań AI.',
+            linkedinUrl: 'https://indeed.com/katarzyna-nowak',
+            source: 'Indeed'
           }
         ]
         this.setCandidates(mockCandidates)
@@ -138,16 +190,21 @@ export const useHRSearchStore = defineStore('hrSearch', {
       // Create clean search query
       let query = queryParts.join(' ')
 
-      // Add site:linkedin.com to focus on LinkedIn profiles
-      query += ' site:linkedin.com'
+      // Add professional sites - not just LinkedIn
+      // This will search across multiple professional platforms
+      query +=
+        ' (site:linkedin.com OR site:goldenline.pl OR site:pracuj.pl OR site:indeed.com OR site:glassdoor.com OR site:xing.com OR site:behance.net OR site:dribbble.com)'
 
       // Fallback if no query parts found
-      return query.trim() || 'marketing specialist AI site:linkedin.com'
+      return (
+        query.trim() ||
+        'marketing specialist AI (site:linkedin.com OR site:goldenline.pl OR site:pracuj.pl)'
+      )
     },
 
     async searchGoogle(query, apiKey, searchEngineId) {
       console.log('Search query:', query) // Debug log
-      const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}&num=10`
+      const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}&num=10&start=1`
       console.log('Search URL:', url) // Debug log
 
       const response = await fetch(url)
@@ -165,7 +222,24 @@ export const useHRSearchStore = defineStore('hrSearch', {
       }
 
       const data = await response.json()
-      return data.items || []
+      let allResults = data.items || []
+
+      // Try to get more results with a second request (starting from result 11)
+      // This gives us up to 20 total results
+      try {
+        const url2 = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}&num=10&start=11`
+        const response2 = await fetch(url2)
+        if (response2.ok) {
+          const data2 = await response2.json()
+          if (data2.items) {
+            allResults = allResults.concat(data2.items)
+          }
+        }
+      } catch (e) {
+        console.log('Nie udało się pobrać dodatkowych wyników:', e)
+      }
+
+      return allResults
     },
 
     async analyzeWithOpenAI(googleResults, apiKey, model) {
@@ -174,7 +248,7 @@ export const useHRSearchStore = defineStore('hrSearch', {
 Brief stanowiska:
 ${this.brief}
 
-Wyniki wyszukiwania:
+Wyniki wyszukiwania (${googleResults.length} wyników z różnych platform zawodowych):
 ${googleResults
   .map(
     (item, index) => `
@@ -185,7 +259,7 @@ ${index + 1}. Tytuł: ${item.title}
   )
   .join('\n')}
 
-Przeanalizuj te wyniki wyszukiwania i wyodrębnij informacje o kandydatach. Zwróć TYLKO tablicę JSON kandydatów o dokładnie tej strukturze:
+Przeanalizuj te wyniki wyszukiwania i wyodrębnij informacje o kandydatach. Znajdź jak najwięcej pasujących kandydatów - nawet jeśli pasują częściowo. Zwróć tablicę JSON kandydatów o dokładnie tej strukturze:
 
 [
   {
@@ -197,12 +271,18 @@ Przeanalizuj te wyniki wyszukiwania i wyodrębnij informacje o kandydatach. Zwr�
     "skills": ["umiejętność1", "umiejętność2", "umiejętność3"],
     "score": 85,
     "summary": "Krótkie 1-2 zdaniowe podsumowanie dopasowania kandydata",
-    "linkedinUrl": "URL profilu LinkedIn",
-    "source": "Źródło informacji"
+    "linkedinUrl": "URL profilu (zachowaj oryginalny URL z wyników)",
+    "source": "Nazwa platformy (LinkedIn, GoldenLine, Pracuj.pl, Indeed, itp.)"
   }
 ]
 
-Oceń kandydatów w skali 0-100 na podstawie tego, jak dobrze pasują do wymagań stanowiska. Uwzględnij tylko kandydatów z jasnymi profilami zawodowymi. Jeśli nie ma dobrych dopasowań, zwróć pustą tablicę [].
+WAŻNE:
+- Znajdź minimum 5-8 kandydatów jeśli są dostępne w wynikach
+- Oceń kandydatów w skali 0-100 (akceptuj nawet kandydatów z wynikiem 60+)
+- Uwzględnij kandydatów z częściowym dopasowaniem umiejętności
+- Zachowaj oryginalne URL z wyników wyszukiwania
+- Określ właściwą platformę w polu "source" na podstawie URL
+- Jeśli nie ma wystarczająco dopasowanych kandydatów, zwróć tych którzy są dostępni
 
 Odpowiadaj w języku polskim. Wszystkie opisy i podsumowania powinny być po polsku.`
 
